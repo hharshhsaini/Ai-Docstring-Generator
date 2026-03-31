@@ -1,0 +1,79 @@
+# Example .pre-commit-config.yaml for docstring-generator
+# Place this file in your project root to enable pre-commit hooks
+#
+# Installation:
+# 1. Install pre-commit: pip install pre-commit
+# 2. Install the hooks: pre-commit install
+# 3. (Optional) Run on all files: pre-commit run --all-files
+#
+# The hook will run automatically on git commit for staged Python files
+
+repos:
+  # Docstring Generator Hook
+  - repo: local
+    hooks:
+      - id: docstring-generator
+        name: Generate missing docstrings
+        entry: docgen
+        # Options:
+        # --staged: Process only git-staged files (automatically handled by pre-commit)
+        # --only-missing: Only generate docstrings for functions that don't have them
+        # --check: Exit with code 1 if any functions lack docstrings (fails the commit)
+        # --style: Override docstring style (google, numpy, sphinx)
+        args: [--staged, --only-missing]
+        language: system
+        types: [python]
+        pass_filenames: true
+        # Set to false if you want to allow commits even when docstrings are missing
+        # Set to true to enforce docstring coverage
+        always_run: false
+        
+  # Alternative: Check mode (fails commit if docstrings are missing)
+  # Uncomment this hook and comment out the one above to enforce docstring coverage
+  # - repo: local
+  #   hooks:
+  #     - id: docstring-check
+  #       name: Check docstring coverage
+  #       entry: docgen
+  #       args: [--staged, --check, --only-missing]
+  #       language: system
+  #       types: [python]
+  #       pass_filenames: true
+  #       always_run: false
+
+# Optional: Combine with other pre-commit hooks
+# Uncomment and customize as needed
+#
+# - repo: https://github.com/pre-commit/pre-commit-hooks
+#   rev: v4.5.0
+#   hooks:
+#     - id: trailing-whitespace
+#     - id: end-of-file-fixer
+#     - id: check-yaml
+#     - id: check-added-large-files
+#
+# - repo: https://github.com/psf/black
+#   rev: 23.12.1
+#   hooks:
+#     - id: black
+#       language_version: python3.11
+#
+# - repo: https://github.com/PyCQA/flake8
+#   rev: 7.0.0
+#   hooks:
+#     - id: flake8
+#       args: [--max-line-length=100]
+#
+# - repo: https://github.com/PyCQA/isort
+#   rev: 5.13.2
+#   hooks:
+#     - id: isort
+#       args: [--profile=black]
+
+# Configuration
+default_language_version:
+  python: python3.11
+
+# Performance: Run hooks in parallel
+default_stages: [commit]
+fail_fast: false

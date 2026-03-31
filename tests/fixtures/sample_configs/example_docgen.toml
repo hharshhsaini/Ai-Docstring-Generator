@@ -1,0 +1,15 @@
+[docgen]
+style = "google"
+provider = "anthropic"
+model = "claude-3-5-sonnet-20241022"
+overwrite_existing = false
+max_retries = 3
+timeout = 30
+
+[docgen.exclude]
+patterns = [
+    "**/test_*.py",
+    "**/tests/**",
+    "**/migrations/**",
+    "**/__pycache__/**",
+]
