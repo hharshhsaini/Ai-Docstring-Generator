@@ -23,6 +23,7 @@ A Python CLI tool that automatically generates and injects docstrings into Pytho
 - [CLI Reference](#cli-reference)
 - [Docstring Styles](#docstring-styles)
 - [LLM Provider Setup](#llm-provider-setup)
+- [API Usage and Billing](#api-usage-and-billing)
 - [Pre-commit Hook Setup](#pre-commit-hook-setup)
 - [GitHub Actions Setup](#github-actions-setup)
 - [Troubleshooting](#troubleshooting)
@@ -499,6 +500,204 @@ def function(arg1: int, arg2: str) -> bool:
 - `codellama`
 - `mistral`
 - Any model available in Ollama
+
+## API Usage and Billing
+
+### Understanding Token Usage
+
+Token usage depends on:
+- **Number of functions** to document
+- **Function complexity** (parameters, type hints, body length)
+- **Docstring style** (Google/NumPy/Sphinx have similar token counts)
+- **Model used** (different tokenization methods)
+
+Each function typically requires:
+- **Input tokens**: Function signature + body preview + prompt template (~200-500 tokens per function)
+- **Output tokens**: Generated docstring (~100-300 tokens per function)
+
+**Rough estimates per function:**
+- Simple function (2-3 params): 300-500 total tokens
+- Medium function (4-6 params): 500-800 total tokens
+- Complex function (7+ params, long body): 800-1500 total tokens
+
+### Cost Comparison by Provider
+
+#### Anthropic Claude Models
+
+| Model | Context Window | Best For | Cost (per 1M tokens) | Cost per Function* |
+|-------|----------------|----------|---------------------|-------------------|
+| `claude-3-5-sonnet-20241022` | 200K | **Recommended** - Best balance | Input: $3, Output: $15 | $0.0015-0.003 |
+| `claude-3-opus-20240229` | 200K | Highest quality docstrings | Input: $15, Output: $75 | $0.008-0.015 |
+| `claude-3-sonnet-20240229` | 200K | Budget-friendly option | Input: $3, Output: $15 | $0.0015-0.003 |
+| `claude-3-haiku-20240307` | 200K | Fastest, cheapest | Input: $0.25, Output: $1.25 | $0.0001-0.0003 |
+
+#### OpenAI GPT Models
+
+| Model | Context Window | Best For | Cost (per 1M tokens) | Cost per Function* |
+|-------|----------------|----------|---------------------|-------------------|
+| `gpt-4` | 8K | High quality docstrings | Input: $30, Output: $60 | $0.015-0.030 |
+| `gpt-4-turbo` | 128K | Large codebases | Input: $10, Output: $30 | $0.005-0.012 |
+| `gpt-3.5-turbo` | 16K | **Budget option** | Input: $0.50, Output: $1.50 | $0.0003-0.001 |
+
+#### Ollama (Local)
+
+| Model | Best For | Cost | Notes |
+|-------|----------|------|-------|
+| `llama2` | General purpose | **FREE** | Requires local GPU/CPU |
+| `codellama` | Code-focused | **FREE** | Better for technical docs |
+| `mistral` | Fast generation | **FREE** | Good balance of speed/quality |
+
+*Estimated cost per function assuming 400 input tokens and 200 output tokens.
+
+### Real-World Cost Examples
+
+#### Small Project (50 functions)
+
+| Provider | Model | Total Tokens | Estimated Cost |
+|----------|-------|--------------|----------------|
+| Anthropic | Claude 3.5 Sonnet | 30K | **$0.08** |
+| Anthropic | Claude 3 Haiku | 30K | **$0.01** |
+| OpenAI | GPT-3.5 Turbo | 30K | **$0.03** |
+| OpenAI | GPT-4 Turbo | 30K | **$0.30** |
+| Ollama | Llama2 | 30K | **$0.00** |
+
+#### Medium Project (200 functions)
+
+| Provider | Model | Total Tokens | Estimated Cost |
+|----------|-------|--------------|----------------|
+| Anthropic | Claude 3.5 Sonnet | 120K | **$0.32** |
+| Anthropic | Claude 3 Haiku | 120K | **$0.04** |
+| OpenAI | GPT-3.5 Turbo | 120K | **$0.12** |
+| OpenAI | GPT-4 Turbo | 120K | **$1.20** |
+| Ollama | Llama2 | 120K | **$0.00** |
+
+#### Large Project (1000 functions)
+
+| Provider | Model | Total Tokens | Estimated Cost |
+|----------|-------|--------------|----------------|
+| Anthropic | Claude 3.5 Sonnet | 600K | **$1.62** |
+| Anthropic | Claude 3 Haiku | 600K | **$0.19** |
+| OpenAI | GPT-3.5 Turbo | 600K | **$0.60** |
+| OpenAI | GPT-4 Turbo | 600K | **$6.00** |
+| Ollama | Llama2 | 600K | **$0.00** |
+
+### Monthly Cost Estimates (CI/CD Usage)
+
+Assuming 20 PRs per month, average 25 functions per PR:
+
+| Configuration | Cost per PR | Monthly Cost |
+|---------------|-------------|--------------|
+| Claude 3.5 Sonnet | $0.04 | **$0.80** |
+| Claude 3 Haiku | $0.005 | **$0.10** |
+| GPT-3.5 Turbo | $0.015 | **$0.30** |
+| GPT-4 Turbo | $0.15 | **$3.00** |
+| Ollama (Local) | $0.00 | **$0.00** |
+
+### Cost Control Strategies
+
+#### 1. Use `--only-missing` Flag
+Only generate docstrings for functions that don't have them:
+```bash
+docgen ./src --only-missing
+```
+**Savings:** 80-90% on subsequent runs
+
+#### 2. Process Specific Files
+Target only changed files instead of entire codebase:
+```bash
+docgen ./src/module.py
+```
+**Savings:** 90-99% by avoiding unnecessary processing
+
+#### 3. Use Cheaper Models for Testing
+Use Haiku or GPT-3.5 for development, upgrade for production:
+```bash
+# Development
+docgen ./src --model claude-3-haiku-20240307
+
+# Production
+docgen ./src --model claude-3-5-sonnet-20241022
+```
+**Savings:** 80-90% during development
+
+#### 4. Batch Processing with Dry-Run
+Preview changes before committing to API calls:
+```bash
+docgen ./src --dry-run
+```
+**Savings:** Verify tool behavior before spending credits
+
+#### 5. Use Ollama for Free Local Generation
+No API costs, runs entirely on your machine:
+```bash
+ollama pull codellama
+docgen ./src --provider ollama --model codellama
+```
+**Savings:** 100% (completely free)
+
+#### 6. Configure Exclusion Patterns
+Skip test files, migrations, and generated code:
+```toml
+[docgen.exclude]
+patterns = [
+    "**/test_*.py",
+    "**/tests/**",
+    "**/migrations/**",
+    "**/*_pb2.py",  # Generated protobuf files
+]
+```
+**Savings:** 30-50% by excluding non-essential files
+
+#### 7. Use Pre-commit Hooks with `--staged`
+Only process files being committed:
+```yaml
+- id: docstring-generator
+  entry: docgen
+  args: [--staged, --only-missing]
+```
+**Savings:** 95-99% by processing only changed files
+
+### Monitoring API Usage
+
+#### Track Token Usage
+Most providers offer usage dashboards:
+- **Anthropic:** [console.anthropic.com/settings/usage](https://console.anthropic.com/settings/usage)
+- **OpenAI:** [platform.openai.com/usage](https://platform.openai.com/usage)
+
+#### Set Budget Alerts
+Configure spending limits in your provider dashboard:
+- Anthropic: Set monthly budget limits
+- OpenAI: Configure usage notifications
+
+#### Log Token Counts
+Enable verbose logging to see token usage per request:
+```bash
+export DOCGEN_LOG_LEVEL=DEBUG
+docgen ./src
+```
+
+### Cost Optimization Recommendations
+
+**For Individual Developers:**
+- ✅ Use **Ollama** (free) for local development
+- ✅ Use **Claude 3 Haiku** or **GPT-3.5 Turbo** for quick iterations
+- ✅ Use **Claude 3.5 Sonnet** for final documentation
+
+**For Small Teams (< 10 developers):**
+- ✅ Use **Claude 3 Haiku** for pre-commit hooks
+- ✅ Use **Claude 3.5 Sonnet** for CI/CD checks
+- ✅ Expected monthly cost: **$5-20**
+
+**For Large Teams (10+ developers):**
+- ✅ Use **Ollama** for local development
+- ✅ Use **Claude 3 Haiku** for pre-commit hooks
+- ✅ Use **Claude 3.5 Sonnet** for PR reviews only
+- ✅ Expected monthly cost: **$20-100**
+
+**For Open Source Projects:**
+- ✅ Use **Ollama** exclusively (free)
+- ✅ Document in README how contributors can set up Ollama
+- ✅ No API costs for maintainers or contributors
 
 ## Pre-commit Hook Setup
 
