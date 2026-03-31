@@ -62,8 +62,13 @@ def process_files_batch(
 
             stats.files_processed += 1
 
+            # Collect all functions (module-level + class methods)
+            all_functions = list(functions)
+            for cls in classes:
+                all_functions.extend(cls.methods)
+
             # Process each function
-            for func in functions:
+            for func in all_functions:
                 if only_missing and func.has_docstring:
                     continue
 

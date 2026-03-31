@@ -71,7 +71,7 @@ class DocstringFormatter:
         """Format docstring to clean LLM output.
         
         This method:
-        - Removes code fences (```python, ```)
+        - Removes code fences (```python, ```, ```markdown, etc.)
         - Strips leading/trailing whitespace
         - Ensures proper triple-quote wrapping
         
@@ -95,11 +95,15 @@ class DocstringFormatter:
         for _ in range(max_iterations):
             original = docstring
             
-            # Remove opening fences
-            docstring = re.sub(r'^```python\s*\n?', '', docstring, flags=re.MULTILINE)
+            # Remove opening fences with language specifiers
+            docstring = re.sub(r'^```[a-zA-Z]*\s*\n?', '', docstring, flags=re.MULTILINE)
+            # Remove standalone opening fences
             docstring = re.sub(r'^```\s*\n?', '', docstring, flags=re.MULTILINE)
             # Remove closing fences
             docstring = re.sub(r'\n?\s*```$', '', docstring, flags=re.MULTILINE)
+            # Remove any remaining backticks at start/end
+            docstring = re.sub(r'^`+\s*', '', docstring)
+            docstring = re.sub(r'\s*`+$', '', docstring)
             docstring = docstring.strip()
             
             # If no changes were made, we're done
